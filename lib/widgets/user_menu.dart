@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -33,11 +34,22 @@ class _UserMenuState extends State<UserMenu> {
   String _role = 'user';
   String _doubanDataSource = '直连';
   String _doubanImageSource = '直连';
-  String _m3u8ProxyUrl = '';
+  String _serverUrl = '';
   String _version = '';
   bool _preferSpeedTest = true;
   bool _localSearch = false;
   bool _isLocalMode = false;
+
+  // 焦点节点管理
+  final FocusNode _apiWebsiteFocusNode = FocusNode();
+  final FocusNode _doubanDataSourceFocusNode = FocusNode();
+  final FocusNode _doubanImageSourceFocusNode = FocusNode();
+  final FocusNode _preferSpeedTestFocusNode = FocusNode();
+  final FocusNode _localSearchFocusNode = FocusNode();
+  final FocusNode _clearDoubanCacheFocusNode = FocusNode();
+  final FocusNode _checkUpdateFocusNode = FocusNode();
+  final FocusNode _logoutFocusNode = FocusNode();
+  final FocusNode _versionFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -59,11 +71,11 @@ class _UserMenuState extends State<UserMenu> {
     final isLocalMode = await UserDataService.getIsLocalMode();
     final username = await UserDataService.getUsername();
     final cookies = await UserDataService.getCookies();
-    final doubanDataSource =
+    final doubanDataSource = 
         await UserDataService.getDoubanDataSourceDisplayName();
-    final doubanImageSource =
+    final doubanImageSource = 
         await UserDataService.getDoubanImageSourceDisplayName();
-    final m3u8ProxyUrl = await UserDataService.getM3u8ProxyUrl();
+    final serverUrl = await UserDataService.getServerUrl();
     final preferSpeedTest = await UserDataService.getPreferSpeedTest();
     final localSearch = await UserDataService.getLocalSearch();
 
@@ -74,11 +86,26 @@ class _UserMenuState extends State<UserMenu> {
         _role = _parseRoleFromCookies(cookies);
         _doubanDataSource = doubanDataSource;
         _doubanImageSource = doubanImageSource;
-        _m3u8ProxyUrl = m3u8ProxyUrl;
+        _serverUrl = serverUrl ?? '';
         _preferSpeedTest = preferSpeedTest;
         _localSearch = localSearch;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    // 释放所有焦点节点资源
+    _apiWebsiteFocusNode.dispose();
+    _doubanDataSourceFocusNode.dispose();
+    _doubanImageSourceFocusNode.dispose();
+    _preferSpeedTestFocusNode.dispose();
+    _localSearchFocusNode.dispose();
+    _clearDoubanCacheFocusNode.dispose();
+    _checkUpdateFocusNode.dispose();
+    _logoutFocusNode.dispose();
+    _versionFocusNode.dispose();
+    super.dispose();
   }
 
   String _parseRoleFromCookies(String? cookies) {
@@ -218,6 +245,38 @@ class _UserMenuState extends State<UserMenu> {
         );
       }
     }
+  }
+
+  // 菜单项组件 - 支持焦点管理和选框显示
+  Widget _buildMenuItem({
+    required Widget child,
+    required FocusNode focusNode,
+    VoidCallback? onTap,
+  }) {
+    return Focus(
+      focusNode: focusNode,
+      onFocusChange: (hasFocus) {
+        setState(() {});
+      },
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            decoration: focusNode.hasFocus
+                ? BoxDecoration(
+                    border: Border.all(
+                      color: Colors.red,
+                      width: 2,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  )
+                : null,
+            child: child,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildRoleTag() {
@@ -401,107 +460,6 @@ class _UserMenuState extends State<UserMenu> {
     );
   }
 
-  void _showM3u8ProxyUrlDialog() {
-    final controller = TextEditingController(text: _m3u8ProxyUrl);
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor:
-              widget.isDarkMode ? const Color(0xFF2c2c2c) : Colors.white,
-          title: Text(
-            'M3U8 代理 URL',
-            style: FontUtils.poppins(
-              fontSize: 18,
-              color: widget.isDarkMode
-                  ? const Color(0xFFffffff)
-                  : const Color(0xFF1f2937),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          content: TextField(
-            controller: controller,
-            style: FontUtils.poppins(
-              fontSize: 14,
-              color: widget.isDarkMode
-                  ? const Color(0xFFffffff)
-                  : const Color(0xFF1f2937),
-            ),
-            decoration: InputDecoration(
-              hintText: '输入代理 URL（可选）',
-              hintStyle: FontUtils.poppins(
-                fontSize: 14,
-                color: widget.isDarkMode
-                    ? const Color(0xFF9ca3af)
-                    : const Color(0xFF6b7280),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(
-                  color: widget.isDarkMode
-                      ? const Color(0xFF374151)
-                      : const Color(0xFFe5e7eb),
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(
-                  color: widget.isDarkMode
-                      ? const Color(0xFF374151)
-                      : const Color(0xFFe5e7eb),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(
-                  color: Color(0xFF10b981),
-                  width: 2,
-                ),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                '取消',
-                style: FontUtils.poppins(
-                  fontSize: 14,
-                  color: widget.isDarkMode
-                      ? const Color(0xFF9ca3af)
-                      : const Color(0xFF6b7280),
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () async {
-                final url = controller.text.trim();
-                await UserDataService.saveM3u8ProxyUrl(url);
-                setState(() {
-                  _m3u8ProxyUrl = url;
-                });
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                }
-              },
-              child: Text(
-                '保存',
-                style: FontUtils.poppins(
-                  fontSize: 14,
-                  color: const Color(0xFF10b981),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _buildInputOption({
     required String title,
     required String currentValue,
@@ -645,8 +603,144 @@ class _UserMenuState extends State<UserMenu> {
     );
   }
 
+  // 处理遥控器事件
+  KeyEventResult _handleRemoteKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      // 返回键关闭菜单
+      if (event.logicalKey == LogicalKeyboardKey.backspace ||
+          event.logicalKey == LogicalKeyboardKey.escape) {
+        widget.onClose?.call();
+        return KeyEventResult.handled;
+      }
+      // 确认键（Enter/Select）
+      else if (event.logicalKey == LogicalKeyboardKey.enter ||
+               event.logicalKey == LogicalKeyboardKey.select ||
+               event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+        // 触发当前聚焦项的点击事件
+        if (_apiWebsiteFocusNode.hasFocus) {
+          // API网站选项，无操作
+        } else if (_doubanDataSourceFocusNode.hasFocus) {
+          _showOptionDialog(
+            '豆瓣数据源',
+            _doubanDataSource,
+            const [
+              '直连',
+              'Cors Proxy By Zwei',
+              '豆瓣 CDN By CMLiussss（腾讯云）',
+              '豆瓣 CDN By CMLiussss（阿里云）',
+            ],
+            (value) async {
+              await UserDataService.saveDoubanDataSource(value);
+              setState(() {
+                _doubanDataSource = value;
+              });
+            },
+          );
+        } else if (_doubanImageSourceFocusNode.hasFocus) {
+          _showOptionDialog(
+            '豆瓣图片源',
+            _doubanImageSource,
+            const [
+              '直连',
+              '豆瓣官方精品 CDN',
+              '豆瓣 CDN By CMLiussss（腾讯云）',
+              '豆瓣 CDN By CMLiussss（阿里云）',
+            ],
+            (value) async {
+              await UserDataService.saveDoubanImageSource(value);
+              setState(() {
+                _doubanImageSource = value;
+              });
+            },
+          );
+        } else if (_preferSpeedTestFocusNode.hasFocus) {
+          UserDataService.savePreferSpeedTest(!_preferSpeedTest).then((_) {
+            setState(() {
+              _preferSpeedTest = !_preferSpeedTest;
+            });
+          });
+        } else if (_localSearchFocusNode.hasFocus) {
+          UserDataService.saveLocalSearch(!_localSearch).then((_) {
+            setState(() {
+              _localSearch = !_localSearch;
+            });
+          });
+        } else if (_clearDoubanCacheFocusNode.hasFocus) {
+          _handleClearDoubanCache();
+        } else if (_checkUpdateFocusNode.hasFocus) {
+          _handleCheckUpdate();
+        } else if (_logoutFocusNode.hasFocus) {
+          _handleLogout();
+        } else if (_versionFocusNode.hasFocus) {
+          final url = Uri.parse('https://github.com/hein1225/HeinPlayTV/');
+          canLaunchUrl(url).then((canLaunch) {
+            if (canLaunch) {
+              launchUrl(url, mode: LaunchMode.externalApplication);
+            }
+          });
+        }
+        return KeyEventResult.handled;
+      }
+      // 方向键导航
+      else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        // 向上导航
+        if (_apiWebsiteFocusNode.hasFocus) {
+          _versionFocusNode.requestFocus();
+        } else if (_doubanDataSourceFocusNode.hasFocus) {
+          _apiWebsiteFocusNode.requestFocus();
+        } else if (_doubanImageSourceFocusNode.hasFocus) {
+          _doubanDataSourceFocusNode.requestFocus();
+        } else if (_preferSpeedTestFocusNode.hasFocus) {
+          _doubanImageSourceFocusNode.requestFocus();
+        } else if (_localSearchFocusNode.hasFocus) {
+          _preferSpeedTestFocusNode.requestFocus();
+        } else if (_clearDoubanCacheFocusNode.hasFocus) {
+          _localSearchFocusNode.hasFocus ? _localSearchFocusNode.requestFocus() : _preferSpeedTestFocusNode.requestFocus();
+        } else if (_checkUpdateFocusNode.hasFocus) {
+          _clearDoubanCacheFocusNode.requestFocus();
+        } else if (_logoutFocusNode.hasFocus) {
+          _checkUpdateFocusNode.requestFocus();
+        } else if (_versionFocusNode.hasFocus) {
+          _logoutFocusNode.requestFocus();
+        }
+        return KeyEventResult.handled;
+      }
+      else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        // 向下导航
+        if (_apiWebsiteFocusNode.hasFocus) {
+          _doubanDataSourceFocusNode.requestFocus();
+        } else if (_doubanDataSourceFocusNode.hasFocus) {
+          _doubanImageSourceFocusNode.requestFocus();
+        } else if (_doubanImageSourceFocusNode.hasFocus) {
+          _preferSpeedTestFocusNode.requestFocus();
+        } else if (_preferSpeedTestFocusNode.hasFocus) {
+          _localSearchFocusNode.hasFocus ? _localSearchFocusNode.requestFocus() : _clearDoubanCacheFocusNode.requestFocus();
+        } else if (_localSearchFocusNode.hasFocus) {
+          _clearDoubanCacheFocusNode.requestFocus();
+        } else if (_clearDoubanCacheFocusNode.hasFocus) {
+          _checkUpdateFocusNode.requestFocus();
+        } else if (_checkUpdateFocusNode.hasFocus) {
+          _logoutFocusNode.requestFocus();
+        } else if (_logoutFocusNode.hasFocus) {
+          _versionFocusNode.requestFocus();
+        } else if (_versionFocusNode.hasFocus) {
+          _apiWebsiteFocusNode.requestFocus();
+        }
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 当菜单显示时，自动聚焦到第一个选项
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _apiWebsiteFocusNode.requestFocus();
+      }
+    });
+
     return Material(
       color: Colors.transparent,
       child: GestureDetector(
@@ -656,162 +750,79 @@ class _UserMenuState extends State<UserMenu> {
           child: Center(
             child: GestureDetector(
               onTap: () {}, // 阻止点击菜单内容时关闭
-              child: Container(
-                width: 280,
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(
-                  color: widget.isDarkMode
-                      ? const Color(0xFF2c2c2c)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 用户信息区域
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          // 本地模式下不显示"当前模式"标签
-                          if (!_isLocalMode)
-                            Text(
-                              '当前用户',
-                              style: FontUtils.poppins(
-                                fontSize: 12,
-                                color: widget.isDarkMode
-                                    ? const Color(0xFF9ca3af)
-                                    : const Color(0xFF6b7280),
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          if (!_isLocalMode) const SizedBox(height: 8),
-                          // 用户名或本地模式
-                          if (_isLocalMode)
-                            Text(
-                              '本地模式',
-                              style: FontUtils.poppins(
-                                fontSize: 18,
-                                color: widget.isDarkMode
-                                    ? const Color(0xFFffffff)
-                                    : const Color(0xFF1f2937),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            )
-                          else
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  _username ?? '未知用户',
-                                  style: FontUtils.poppins(
-                                    fontSize: 18,
-                                    color: widget.isDarkMode
-                                        ? const Color(0xFFffffff)
-                                        : const Color(0xFF1f2937),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // 角色标签
-                                _buildRoleTag(),
-                              ],
-                            ),
-                        ],
+              child: FocusScope(
+                onKeyEvent: _handleRemoteKeyEvent,
+                child: Container(
+                  width: 320, // 增加宽度以适应电视显示
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: widget.isDarkMode
+                        ? const Color(0xFF2c2c2c)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                    ),
-                    // 分割线
-                    Container(
-                      height: 1,
-                      color: widget.isDarkMode
-                          ? const Color(0xFF374151)
-                          : const Color(0xFFe5e7eb),
-                    ),
-                    // 豆瓣数据源选项
-                    _buildOptionSelector(
-                      title: '豆瓣数据源',
-                      currentValue: _doubanDataSource,
-                      options: const [
-                        '直连',
-                        'Cors Proxy By Zwei',
-                        '豆瓣 CDN By CMLiussss（腾讯云）',
-                        '豆瓣 CDN By CMLiussss（阿里云）',
-                      ],
-                      onChanged: (value) async {
-                        await UserDataService.saveDoubanDataSource(value);
-                        setState(() {
-                          _doubanDataSource = value;
-                        });
-                      },
-                      icon: LucideIcons.database,
-                    ),
-                    // 分割线
-                    Container(
-                      height: 1,
-                      color: widget.isDarkMode
-                          ? const Color(0xFF374151)
-                          : const Color(0xFFe5e7eb),
-                    ),
-                    // 豆瓣图片源选项
-                    _buildOptionSelector(
-                      title: '豆瓣图片源',
-                      currentValue: _doubanImageSource,
-                      options: const [
-                        '直连',
-                        '豆瓣官方精品 CDN',
-                        '豆瓣 CDN By CMLiussss（腾讯云）',
-                        '豆瓣 CDN By CMLiussss（阿里云）',
-                      ],
-                      onChanged: (value) async {
-                        await UserDataService.saveDoubanImageSource(value);
-                        setState(() {
-                          _doubanImageSource = value;
-                        });
-                      },
-                      icon: LucideIcons.image,
-                    ),
-                    // 分割线
-                    Container(
-                      height: 1,
-                      color: widget.isDarkMode
-                          ? const Color(0xFF374151)
-                          : const Color(0xFFe5e7eb),
-                    ),
-                    // M3U8 代理 URL 选项
-                    _buildInputOption(
-                      title: 'M3U8 代理 URL',
-                      currentValue: _m3u8ProxyUrl,
-                      onTap: _showM3u8ProxyUrlDialog,
-                      icon: LucideIcons.link,
-                    ),
-                    // 分割线
-                    Container(
-                      height: 1,
-                      color: widget.isDarkMode
-                          ? const Color(0xFF374151)
-                          : const Color(0xFFe5e7eb),
-                    ),
-                    // 优选测速选项
-                    _buildToggleOption(
-                      title: '优选测速',
-                      value: _preferSpeedTest,
-                      onChanged: (value) async {
-                        await UserDataService.savePreferSpeedTest(value);
-                        setState(() {
-                          _preferSpeedTest = value;
-                        });
-                      },
-                      icon: LucideIcons.zap,
-                    ),
-                    // 本地搜索选项（本地模式下不显示）
-                    if (!_isLocalMode) ...[
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 用户信息区域
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          children: [
+                            // 本地模式下不显示"当前模式"标签
+                            if (!_isLocalMode)
+                              Text(
+                                '当前用户',
+                                style: FontUtils.poppins(
+                                  fontSize: 14,
+                                  color: widget.isDarkMode
+                                      ? const Color(0xFF9ca3af)
+                                      : const Color(0xFF6b7280),
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            if (!_isLocalMode) const SizedBox(height: 12),
+                            // 用户名或本地模式
+                            if (_isLocalMode)
+                              Text(
+                                '本地模式',
+                                style: FontUtils.poppins(
+                                  fontSize: 20,
+                                  color: widget.isDarkMode
+                                      ? const Color(0xFFffffff)
+                                      : const Color(0xFF1f2937),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              )
+                            else
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _username ?? '未知用户',
+                                    style: FontUtils.poppins(
+                                      fontSize: 20,
+                                      color: widget.isDarkMode
+                                          ? const Color(0xFFffffff)
+                                          : const Color(0xFF1f2937),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // 角色标签
+                                  _buildRoleTag(),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
                       // 分割线
                       Container(
                         height: 1,
@@ -819,40 +830,174 @@ class _UserMenuState extends State<UserMenu> {
                             ? const Color(0xFF374151)
                             : const Color(0xFFe5e7eb),
                       ),
-                      _buildToggleOption(
-                        title: '本地搜索',
-                        value: _localSearch,
-                        onChanged: (value) async {
-                          await UserDataService.saveLocalSearch(value);
+                      // API网站选项
+                      _buildMenuItem(
+                        child: _buildInputOption(
+                          title: 'API网站',
+                          currentValue: _serverUrl.isEmpty ? '未设置' : _serverUrl,
+                          onTap: () {},
+                          icon: LucideIcons.globe,
+                        ),
+                        focusNode: _apiWebsiteFocusNode,
+                      ),
+                      // 豆瓣数据源选项
+                      _buildMenuItem(
+                        child: _buildOptionSelector(
+                          title: '豆瓣数据源',
+                          currentValue: _doubanDataSource,
+                          options: const [
+                            '直连',
+                            'Cors Proxy By Zwei',
+                            '豆瓣 CDN By CMLiussss（腾讯云）',
+                            '豆瓣 CDN By CMLiussss（阿里云）',
+                          ],
+                          onChanged: (value) async {
+                            await UserDataService.saveDoubanDataSource(value);
+                            setState(() {
+                              _doubanDataSource = value;
+                            });
+                          },
+                          icon: LucideIcons.database,
+                        ),
+                        focusNode: _doubanDataSourceFocusNode,
+                        onTap: () => _showOptionDialog(
+                          '豆瓣数据源',
+                          _doubanDataSource,
+                          const [
+                            '直连',
+                            'Cors Proxy By Zwei',
+                            '豆瓣 CDN By CMLiussss（腾讯云）',
+                            '豆瓣 CDN By CMLiussss（阿里云）',
+                          ],
+                          (value) async {
+                            await UserDataService.saveDoubanDataSource(value);
+                            setState(() {
+                              _doubanDataSource = value;
+                            });
+                          },
+                        ),
+                      ),
+                      // 分割线
+                      Container(
+                        height: 1,
+                        color: widget.isDarkMode
+                            ? const Color(0xFF374151)
+                            : const Color(0xFFe5e7eb),
+                      ),
+                      // 豆瓣图片源选项
+                      _buildMenuItem(
+                        child: _buildOptionSelector(
+                          title: '豆瓣图片源',
+                          currentValue: _doubanImageSource,
+                          options: const [
+                            '直连',
+                            '豆瓣官方精品 CDN',
+                            '豆瓣 CDN By CMLiussss（腾讯云）',
+                            '豆瓣 CDN By CMLiussss（阿里云）',
+                          ],
+                          onChanged: (value) async {
+                            await UserDataService.saveDoubanImageSource(value);
+                            setState(() {
+                              _doubanImageSource = value;
+                            });
+                          },
+                          icon: LucideIcons.image,
+                        ),
+                        focusNode: _doubanImageSourceFocusNode,
+                        onTap: () => _showOptionDialog(
+                          '豆瓣图片源',
+                          _doubanImageSource,
+                          const [
+                            '直连',
+                            '豆瓣官方精品 CDN',
+                            '豆瓣 CDN By CMLiussss（腾讯云）',
+                            '豆瓣 CDN By CMLiussss（阿里云）',
+                          ],
+                          (value) async {
+                            await UserDataService.saveDoubanImageSource(value);
+                            setState(() {
+                              _doubanImageSource = value;
+                            });
+                          },
+                        ),
+                      ),
+                      // 分割线
+                      Container(
+                        height: 1,
+                        color: widget.isDarkMode
+                            ? const Color(0xFF374151)
+                            : const Color(0xFFe5e7eb),
+                      ),
+                      // 优选测速选项
+                      _buildMenuItem(
+                        child: _buildToggleOption(
+                          title: '优选测速',
+                          value: _preferSpeedTest,
+                          onChanged: (value) async {
+                            await UserDataService.savePreferSpeedTest(value);
+                            setState(() {
+                              _preferSpeedTest = value;
+                            });
+                          },
+                          icon: LucideIcons.zap,
+                        ),
+                        focusNode: _preferSpeedTestFocusNode,
+                        onTap: () async {
+                          await UserDataService.savePreferSpeedTest(!_preferSpeedTest);
                           setState(() {
-                            _localSearch = value;
+                            _preferSpeedTest = !_preferSpeedTest;
                           });
                         },
-                        icon: LucideIcons.search,
                       ),
-                    ],
-                    // 分割线
-                    Container(
-                      height: 1,
-                      color: widget.isDarkMode
-                          ? const Color(0xFF374151)
-                          : const Color(0xFFe5e7eb),
-                    ),
-                    // 清除豆瓣缓存按钮
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _handleClearDoubanCache,
+                      // 本地搜索选项（本地模式下不显示）
+                      if (!_isLocalMode) ...[
+                        // 分割线
+                        Container(
+                          height: 1,
+                          color: widget.isDarkMode
+                              ? const Color(0xFF374151)
+                              : const Color(0xFFe5e7eb),
+                        ),
+                        _buildMenuItem(
+                          child: _buildToggleOption(
+                            title: '本地搜索',
+                            value: _localSearch,
+                            onChanged: (value) async {
+                              await UserDataService.saveLocalSearch(value);
+                              setState(() {
+                                _localSearch = value;
+                              });
+                            },
+                            icon: LucideIcons.search,
+                          ),
+                          focusNode: _localSearchFocusNode,
+                          onTap: () async {
+                            await UserDataService.saveLocalSearch(!_localSearch);
+                            setState(() {
+                              _localSearch = !_localSearch;
+                            });
+                          },
+                        ),
+                      ],
+                      // 分割线
+                      Container(
+                        height: 1,
+                        color: widget.isDarkMode
+                            ? const Color(0xFF374151)
+                            : const Color(0xFFe5e7eb),
+                      ),
+                      // 清除豆瓣缓存按钮
+                      _buildMenuItem(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 10,
+                            vertical: 14, // 增加高度
                           ),
                           child: Row(
                             children: [
                               Icon(
                                 LucideIcons.trash2,
-                                size: 20,
+                                size: 22, // 增加图标大小
                                 color: const Color(0xFFf59e0b),
                               ),
                               const SizedBox(width: 12),
@@ -869,30 +1014,28 @@ class _UserMenuState extends State<UserMenu> {
                             ],
                           ),
                         ),
+                        focusNode: _clearDoubanCacheFocusNode,
+                        onTap: _handleClearDoubanCache,
                       ),
-                    ),
-                    // 分割线
-                    Container(
-                      height: 1,
-                      color: widget.isDarkMode
-                          ? const Color(0xFF374151)
-                          : const Color(0xFFe5e7eb),
-                    ),
-                    // 检查更新按钮
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _handleCheckUpdate,
+                      // 分割线
+                      Container(
+                        height: 1,
+                        color: widget.isDarkMode
+                            ? const Color(0xFF374151)
+                            : const Color(0xFFe5e7eb),
+                      ),
+                      // 检查更新按钮
+                      _buildMenuItem(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 10,
+                            vertical: 14, // 增加高度
                           ),
                           child: Row(
                             children: [
                               Icon(
                                 LucideIcons.download,
-                                size: 20,
+                                size: 22, // 增加图标大小
                                 color: const Color(0xFF3b82f6),
                               ),
                               const SizedBox(width: 12),
@@ -909,30 +1052,28 @@ class _UserMenuState extends State<UserMenu> {
                             ],
                           ),
                         ),
+                        focusNode: _checkUpdateFocusNode,
+                        onTap: _handleCheckUpdate,
                       ),
-                    ),
-                    // 分割线
-                    Container(
-                      height: 1,
-                      color: widget.isDarkMode
-                          ? const Color(0xFF374151)
-                          : const Color(0xFFe5e7eb),
-                    ),
-                    // 登出按钮
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _handleLogout,
+                      // 分割线
+                      Container(
+                        height: 1,
+                        color: widget.isDarkMode
+                            ? const Color(0xFF374151)
+                            : const Color(0xFFe5e7eb),
+                      ),
+                      // 登出按钮
+                      _buildMenuItem(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 10,
+                            vertical: 14, // 增加高度
                           ),
                           child: Row(
                             children: [
                               const Icon(
                                 LucideIcons.logOut,
-                                size: 20,
+                                size: 22, // 增加图标大小
                                 color: Color(0xFFef4444),
                               ),
                               const SizedBox(width: 12),
@@ -947,50 +1088,56 @@ class _UserMenuState extends State<UserMenu> {
                             ],
                           ),
                         ),
+                        focusNode: _logoutFocusNode,
+                        onTap: _handleLogout,
                       ),
-                    ),
-                    // 分割线
-                    Container(
-                      height: 1,
-                      color: widget.isDarkMode
-                          ? const Color(0xFF374151)
-                          : const Color(0xFFe5e7eb),
-                    ),
-                    // 版本号
-                    MouseRegion(
-                      cursor: DeviceUtils.isPC()
-                          ? SystemMouseCursors.click
-                          : MouseCursor.defer,
-                      child: GestureDetector(
-                        onTap: () async {
-                          final url = Uri.parse(
-                              'https://github.com/hein1225/HeinPlayTV/');
-                          if (await canLaunchUrl(url)) {
-                            await launchUrl(url,
-                                mode: LaunchMode.externalApplication);
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
-                          child: Center(
-                            child: Text(
-                              _version.isEmpty ? 'v1.4.3' : 'v$_version',
-                              style: FontUtils.poppins(
-                                fontSize: 14,
-                                color: widget.isDarkMode
-                                    ? const Color(0xFF9ca3af)
-                                    : const Color(0xFF6b7280),
-                                fontWeight: FontWeight.w500,
+                      // 分割线
+                      Container(
+                        height: 1,
+                        color: widget.isDarkMode
+                            ? const Color(0xFF374151)
+                            : const Color(0xFFe5e7eb),
+                      ),
+                      // 版本号
+                      _buildMenuItem(
+                        child: GestureDetector(
+                          onTap: () async {
+                            final url = Uri.parse(
+                                'https://github.com/hein1225/HeinPlayTV/');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url,
+                                  mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16, // 增加高度
+                            ),
+                            child: Center(
+                              child: Text(
+                                _version.isEmpty ? 'v1.4.3' : 'v$_version',
+                                style: FontUtils.poppins(
+                                  fontSize: 16, // 增加字体大小
+                                  color: widget.isDarkMode
+                                      ? const Color(0xFF9ca3af)
+                                      : const Color(0xFF6b7280),
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ),
                         ),
+                        focusNode: _versionFocusNode,
+                        onTap: () async {
+                          final url = Uri.parse('https://github.com/hein1225/HeinPlayTV/');
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          }
+                        },
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

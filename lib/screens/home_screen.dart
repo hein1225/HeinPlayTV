@@ -11,6 +11,7 @@ import '../widgets/favorites_grid.dart';
 import '../widgets/history_grid.dart';
 import 'search_screen.dart';
 import 'history_screen.dart';
+import 'poster_info_screen.dart';
 import '../widgets/video_menu_bottom_sheet.dart';
 import '../widgets/custom_refresh_indicator.dart';
 import '../models/play_record.dart';
@@ -187,11 +188,8 @@ class _HomeScreenState extends State<HomeScreen> {
               onVideoTap: _onVideoTap,
               onGlobalMenuAction: _onGlobalMenuAction,
               onViewAll: () {
-                // 导航到单独的播放历史页面
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HistoryScreen()),
-                );
+                // 切换到播放历史分类
+                _onCategoryChanged(6);
               },
             ),
             // 热门剧集组件
@@ -272,6 +270,44 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// 构建收藏夹标签内容
+  Widget _buildFavoritesTabContent() {
+    return StyledRefreshIndicator(
+      onRefresh: _refreshHomeData,
+      refreshText: '刷新中...',
+      primaryColor: const Color(0xFF27AE60),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SizedBox(height: 4),
+            FavoritesGrid(
+              onVideoTap: _onVideoTap,
+              onGlobalMenuAction:
+                  (VideoInfo videoInfo, VideoMenuAction action) {
+                // 将VideoInfo转换为PlayRecord用于统一处理
+                final playRecord = PlayRecord(
+                  id: videoInfo.id,
+                  source: videoInfo.source,
+                  title: videoInfo.title,
+                  sourceName: videoInfo.sourceName,
+                  year: videoInfo.year,
+                  cover: videoInfo.cover,
+                  index: videoInfo.index,
+                  totalEpisodes: videoInfo.totalEpisodes,
+                  playTime: videoInfo.playTime,
+                  totalTime: videoInfo.totalTime,
+                  saveTime: videoInfo.saveTime,
+                  searchTitle: videoInfo.searchTitle,
+                );
+                _onGlobalMenuAction(playRecord, action);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -314,6 +350,8 @@ class _HomeScreenState extends State<HomeScreen> {
         const AnimeScreen(),
         const ShowScreen(),
         const LiveScreen(),
+        const HistoryScreen(),
+        _buildFavoritesTabContent(),
       ],
     );
   }
@@ -372,8 +410,6 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       // 切换到首页
       _currentCategoryIndex = 0;
-      // 切换到首页标签
-      _selectedTopTab = '首页';
     });
 
     // 使用动画切换到首页
@@ -382,23 +418,19 @@ class _HomeScreenState extends State<HomeScreen> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
-
-    // 同时切换顶部标签到首页
-    _pageController.animateToPage(
-      0,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
   }
 
   /// 处理视频卡片点击
   void _onVideoTap(PlayRecord playRecord) {
-    _navigateToPlayer(
-      PlayerScreen(
-        source: playRecord.source,
-        id: playRecord.id,
-        title: playRecord.title,
-        year: playRecord.year,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PosterInfoScreen(
+          source: playRecord.source,
+          id: playRecord.id,
+          title: playRecord.title,
+          year: playRecord.year,
+        ),
       ),
     );
   }

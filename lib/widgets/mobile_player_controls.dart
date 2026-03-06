@@ -482,21 +482,8 @@ class _MobilePlayerControlsState extends State<MobilePlayerControls> {
 
   Future<void> _toggleScreenOrientation() async {
     _onUserInteraction();
-    // 总是切换到竖屏，不再切换到横屏
-    // 这样可以确保在全屏自动横屏后，点击旋转按钮会切换到竖屏
-    
-    // 先更新UI状态
-    if (mounted) {
-      setState(() {
-        _isPortrait = true;
-      });
-    }
-    
-    // 然后设置屏幕方向为竖屏
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
+    // 移除竖屏播放选项，不再允许切换到竖屏
+    // 视频播放时始终保持横屏
   }
 
   String _formatDuration(Duration duration) {
@@ -935,22 +922,7 @@ class _MobilePlayerControlsState extends State<MobilePlayerControls> {
                       ),
                     ),
                   ),
-                if (_isFullscreen) // 只在全屏模式下显示方向切换按钮
-                  GestureDetector(
-                    onTap: () async {
-                      _onUserInteraction();
-                      await _toggleScreenOrientation();
-                    },
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(
-                        _isPortrait ? Icons.screen_rotation : Icons.screen_rotation_alt,
-                        color: Colors.white,
-                        size: _isFullscreen ? 22 : 20,
-                      ),
-                    ),
-                  ),
+
                 GestureDetector(
                   onTap: () {
                     _onUserInteraction();

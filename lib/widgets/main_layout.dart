@@ -9,8 +9,6 @@ import '../services/api_service.dart';
 import '../utils/device_utils.dart';
 import '../utils/font_utils.dart';
 import 'user_menu.dart';
-import '../screens/history_screen.dart';
-import '../screens/favorites_screen.dart';
 import 'dart:io' show Platform;
 import 'dart:async';
 
@@ -375,6 +373,8 @@ class _MainLayoutState extends State<MainLayout> {
       {'icon': LucideIcons.cat, 'label': '动漫'},
       {'icon': LucideIcons.clover, 'label': '综艺'},
       {'icon': LucideIcons.radio, 'label': '直播'},
+      {'icon': LucideIcons.history, 'label': '播放历史'},
+      {'icon': LucideIcons.heart, 'label': '收藏夹'},
     ];
 
     return Column(
@@ -777,80 +777,8 @@ class _MainLayoutState extends State<MainLayout> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 播放历史按钮
-        MouseRegion(
-          cursor:
-              DeviceUtils.isPC() ? SystemMouseCursors.click : MouseCursor.defer,
-          child: FocusableActionDetector(
-            onShowFocusHighlight: (_) => true,
-            child: GestureDetector(
-              onTap: () {
-                // 导航到单独的播放历史页面
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HistoryScreen()),
-                );
-              },
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.transparent,
-                ),
-                child: Center(
-                  child: Icon(
-                    LucideIcons.history,
-                    color: themeService.isDarkMode
-                        ? const Color(0xFFffffff)
-                        : const Color(0xFF2c3e50),
-                    size: 24,
-                    weight: 1.0,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        // 收藏夹按钮
-        MouseRegion(
-          cursor:
-              DeviceUtils.isPC() ? SystemMouseCursors.click : MouseCursor.defer,
-          child: FocusableActionDetector(
-            onShowFocusHighlight: (_) => true,
-            child: GestureDetector(
-              onTap: () {
-                // 导航到单独的收藏夹页面
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const FavoritesScreen()),
-                );
-              },
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.transparent,
-                ),
-                child: Center(
-                  child: Icon(
-                    LucideIcons.heart,
-                    color: themeService.isDarkMode
-                        ? const Color(0xFFffffff)
-                        : const Color(0xFF2c3e50),
-                    size: 24,
-                    weight: 1.0,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
+
+
         // 深浅模式切换按钮
         MouseRegion(
           cursor:

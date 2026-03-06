@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/history_grid.dart';
 import '../widgets/custom_refresh_indicator.dart';
-import '../widgets/main_layout.dart';
 import '../models/play_record.dart';
 import '../widgets/video_menu_bottom_sheet.dart';
 import '../utils/font_utils.dart';
@@ -18,25 +17,7 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
-    return MainLayout(
-      content: _buildContent(),
-      currentCategoryIndex: 0,
-      onCategoryChanged: (index) {
-        // 这里可以处理分类导航的切换
-      },
-      selectedTopTab: '播放历史',
-      onTopTabChanged: (tab) {
-        // 这里可以处理顶部标签的切换
-      },
-      onHomeTap: () {
-        // 点击首页图标返回首页
-        Navigator.pop(context);
-      },
-      onSearchTap: () {
-        // 点击搜索图标
-        Navigator.pushNamed(context, '/search');
-      },
-    );
+    return _buildContent();
   }
 
   Widget _buildContent() {

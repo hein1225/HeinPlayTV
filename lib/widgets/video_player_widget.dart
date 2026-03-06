@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:pip/pip.dart';
+import '../utils/device_utils.dart';
 import 'mobile_player_controls.dart';
 import 'pc_player_controls.dart';
 import 'video_player_surface.dart';
@@ -470,59 +471,76 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget>
 
   @override
   Widget build(BuildContext context) {
+    // 检查是否是TV设备
+    final isTV = DeviceUtils.isTV();
+    
+    // 对于TV设备，直接使用PCPlayerControls
+    final usePCControls = widget.surface == VideoPlayerSurface.desktop || isTV;
+    
     return Container(
       color: Colors.black,
       child: _isInitialized && _videoController != null
           ? Video(
               controller: _videoController!,
               controls: (state) {
-                return widget.surface == VideoPlayerSurface.desktop
-                    ? PCPlayerControls(
-                        state: state,
-                        player: _player!,
-                        onBackPressed: widget.onBackPressed,
-                        onNextEpisode: widget.onNextEpisode,
-                        onPause: widget.onPause,
-                        videoUrl: _currentUrl ?? '',
-                        isLastEpisode: widget.isLastEpisode,
-                        isLoadingVideo: _isLoadingVideo,
-                        onCastStarted: widget.onCastStarted,
-                        videoTitle: widget.videoTitle,
-                        currentEpisodeIndex: widget.currentEpisodeIndex,
-                        totalEpisodes: widget.totalEpisodes,
-                        sourceName: widget.sourceName,
-                        onWebFullscreenChanged: widget.onWebFullscreenChanged,
-                        onExitWebFullscreenCallbackReady: (callback) {
-                          _exitWebFullscreenCallback = callback;
-                        },
-                        onExitFullScreen: widget.onExitFullScreen,
-                        live: widget.live,
-                        playbackSpeedListenable: _playbackSpeed,
-                        onSetSpeed: _setPlaybackSpeed,
-                      )
-                    : MobilePlayerControls(
-                        player: _player!,
-                        state: state,
-                        onControlsVisibilityChanged: (_) {},
-                        onBackPressed: widget.onBackPressed,
-                        onFullscreenChange: (_) {},
-                        onNextEpisode: widget.onNextEpisode,
-                        onPause: widget.onPause,
-                        videoUrl: _currentUrl ?? '',
-                        isLastEpisode: widget.isLastEpisode,
-                        isLoadingVideo: _isLoadingVideo,
-                        onCastStarted: widget.onCastStarted,
-                        videoTitle: widget.videoTitle,
-                        currentEpisodeIndex: widget.currentEpisodeIndex,
-                        totalEpisodes: widget.totalEpisodes,
-                        sourceName: widget.sourceName,
-                        onExitFullScreen: widget.onExitFullScreen,
-                        live: widget.live,
-                        playbackSpeedListenable: _playbackSpeed,
-                        onSetSpeed: _setPlaybackSpeed,
-                        onEnterPipMode: _enterPipMode,
-                        isPipMode: _isPipMode,
-                      );
+                // TV设备和桌面设备使用PCPlayerControls（更好的遥控器支持）
+                if (usePCControls) {
+                  // 对于TV设备，自动进入全屏
+                  if (isTV && !state.isFullscreen()) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      state.enterFullscreen();
+                    });
+                  }
+                  
+                  return PCPlayerControls(
+                    state: state,
+                    player: _player!,
+                    onBackPressed: widget.onBackPressed,
+                    onNextEpisode: widget.onNextEpisode,
+                    onPause: widget.onPause,
+                    videoUrl: _currentUrl ?? '',
+                    isLastEpisode: widget.isLastEpisode,
+                    isLoadingVideo: _isLoadingVideo,
+                    onCastStarted: widget.onCastStarted,
+                    videoTitle: widget.videoTitle,
+                    currentEpisodeIndex: widget.currentEpisodeIndex,
+                    totalEpisodes: widget.totalEpisodes,
+                    sourceName: widget.sourceName,
+                    onWebFullscreenChanged: widget.onWebFullscreenChanged,
+                    onExitWebFullscreenCallbackReady: (callback) {
+                      _exitWebFullscreenCallback = callback;
+                    },
+                    onExitFullScreen: widget.onExitFullScreen,
+                    live: widget.live,
+                    playbackSpeedListenable: _playbackSpeed,
+                    onSetSpeed: _setPlaybackSpeed,
+                  );
+                } else {
+                  // 移动端使用MobilePlayerControls，但移除竖屏播放选项
+                  return MobilePlayerControls(
+                    player: _player!,
+                    state: state,
+                    onControlsVisibilityChanged: (_) {},
+                    onBackPressed: widget.onBackPressed,
+                    onFullscreenChange: (_) {},
+                    onNextEpisode: widget.onNextEpisode,
+                    onPause: widget.onPause,
+                    videoUrl: _currentUrl ?? '',
+                    isLastEpisode: widget.isLastEpisode,
+                    isLoadingVideo: _isLoadingVideo,
+                    onCastStarted: widget.onCastStarted,
+                    videoTitle: widget.videoTitle,
+                    currentEpisodeIndex: widget.currentEpisodeIndex,
+                    totalEpisodes: widget.totalEpisodes,
+                    sourceName: widget.sourceName,
+                    onExitFullScreen: widget.onExitFullScreen,
+                    live: widget.live,
+                    playbackSpeedListenable: _playbackSpeed,
+                    onSetSpeed: _setPlaybackSpeed,
+                    onEnterPipMode: _enterPipMode,
+                    isPipMode: _isPipMode,
+                  );
+                }
               },
             )
           : const Center(

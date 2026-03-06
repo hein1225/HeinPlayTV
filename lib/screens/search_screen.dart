@@ -19,6 +19,7 @@ import '../widgets/main_layout.dart';
 import '../utils/font_utils.dart';
 import '../utils/device_utils.dart';
 import 'player_screen.dart';
+import 'poster_info_screen.dart';
 
 enum SortOrder { none, asc, desc }
 
@@ -1223,7 +1224,7 @@ class _SearchScreenState extends State<SearchScreen>
           Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => PlayerScreen(
+                  builder: (context) => PosterInfoScreen(
                         title: videoInfo.title,
                         stitle: stitle,
                         stype: type,
@@ -1234,12 +1235,11 @@ class _SearchScreenState extends State<SearchScreen>
           Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => PlayerScreen(
+                  builder: (context) => PosterInfoScreen(
                         source: videoInfo.source,
                         id: videoInfo.id,
                         year: videoInfo.year,
                         title: videoInfo.title,
-                        stype: videoInfo.totalEpisodes > 1 ? 'tv' : 'movie',
                         stitle: stitle,
                       )));
         }
